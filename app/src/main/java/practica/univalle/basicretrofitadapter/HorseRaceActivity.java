@@ -1,29 +1,23 @@
 package practica.univalle.basicretrofitadapter;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.ArrayList;
+import java.util.List;
 
 import practica.univalle.basicretrofitadapter.models.Horse;
 import practica.univalle.basicretrofitadapter.models.HorseRaceBroadcastReceiver;
-import practica.univalle.basicretrofitadapter.models.OnHorseWinListener;
 
 public class HorseRaceActivity extends AppCompatActivity {
 
@@ -69,6 +63,16 @@ public class HorseRaceActivity extends AppCompatActivity {
         Button stopHorseButton = findViewById(R.id.stopHorseButton);
         stopHorseButton.setOnClickListener(v -> stopSpecificHorse());
 
+        horseRaceBroadcastReceiver = new HorseRaceBroadcastReceiver(){
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                super.onReceive(context, intent);
+                showLoser();
+                List<Horse> lastTwoLosers = findLastTwoLosers();
+                Toast.makeText(HorseRaceActivity.this, "Dos últimos perdedores: " + lastTwoLosers.get(0).getName() + " y " + lastTwoLosers.get(1).getName(), Toast.LENGTH_SHORT).show();
+            }
+        };
+
         LocalBroadcastManager.getInstance(this).registerReceiver(horseRaceBroadcastReceiver, new IntentFilter("HORSE_RACE_FINISHED"));
     }
 
@@ -101,6 +105,55 @@ public class HorseRaceActivity extends AppCompatActivity {
             horse.reset();
             new Thread(horse).start();
         }
+    }
+    public void stopAllHorsesExceptWinner(Horse winner) {
+        for (Horse horse : horses) {
+            if (horse != winner) {
+                horse.stop();
+            }
+        }
+    }
+
+    public Horse findLoser(){
+        Horse loser = null;
+        float minProgress = Float.MAX_VALUE;
+        for (Horse horse : horses) {
+            float progress = horse.getProgressPercentage();
+            if (progress < minProgress) {
+                minProgress = progress;
+                loser = horse;
+            }
+        }
+        return loser;
+    }
+    public List<Horse> findLastTwoLosers() {
+        List<Horse> lastTwoLosers = new ArrayList<>();
+        Horse lastLoser = null;
+        Horse secondLastLoser = null;
+        float minProgress = Float.MAX_VALUE;
+        float secondMinProgress = Float.MAX_VALUE;
+
+        for (Horse horse : horses) {
+            float progress = horse.getProgressPercentage();
+            if (progress < minProgress) {
+                secondMinProgress = minProgress;
+                secondLastLoser = lastLoser;
+                minProgress = progress;
+                lastLoser = horse;
+            } else if (progress < secondMinProgress) {
+                secondMinProgress = progress;
+                secondLastLoser = horse;
+            }
+        }
+
+        lastTwoLosers.add(lastLoser);
+        lastTwoLosers.add(secondLastLoser);
+        return lastTwoLosers;
+    }
+
+    public void showLoser(){
+        Horse loser = findLoser();
+        Toast.makeText(this, "Caballo perdedor: " + loser.getName(), Toast.LENGTH_SHORT).show();
     }
 }
 

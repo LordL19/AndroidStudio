@@ -100,6 +100,7 @@ public class Horse implements Runnable {
                 stop();
                 if (horseRaceActivity.winner == null) {
                     horseRaceActivity.winner = this;
+                    horseRaceActivity.stopAllHorsesExceptWinner(this);
                     Intent intent = new Intent("HORSE_RACE_FINISHED");
                     intent.putExtra("winnerName", getName());
                     LocalBroadcastManager.getInstance(horseRaceActivity).sendBroadcast(intent);
